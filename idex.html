@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Something For You🦋</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #020205;
+    font-family: 'Poppins', sans-serif;
+    cursor: none;
+  }
+
+  canvas {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;
+  }
+
+  #ui-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .ui-card {
+    pointer-events: auto;
+    width: min(90vw, 360px);
+    padding: 42px 32px 36px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(147, 197, 253, 0.25);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 0 60px rgba(59, 130, 246, 0.15), inset 0 0 40px rgba(59,130,246,0.04);
+    text-align: center;
+    transition: opacity 0.9s ease, transform 0.9s ease, filter 0.9s ease;
+  }
+
+  .ui-card.hidden {
+    opacity: 0;
+    transform: scale(0.92) translateY(-10px);
+    filter: blur(6px);
+    pointer-events: none;
+  }
+
+  .heart-icon {
+    font-size: 34px;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 0 12px rgba(96,165,250,0.8));
+  }
+
+  .ui-card h1 {
+    font-family: 'Dancing Script', cursive;
+    font-weight: 700;
+    font-size: 34px;
+    color: #eaf2ff;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .ui-card p {
+    color: #9fb4d6;
+    font-size: 13.5px;
+    font-weight: 300;
+    margin-bottom: 22px;
+    line-height: 1.6;
+  }
+
+  #name-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(147, 197, 253, 0.3);
+    background: rgba(2, 2, 5, 0.35);
+    color: #eaf2ff;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    outline: none;
+    cursor: text;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  #name-input::placeholder { color: #5c7196; }
+
+  #name-input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 18px rgba(96,165,250,0.25);
+  }
+
+  #enter-btn {
+    margin-top: 18px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb, #60a5fa);
+    color: #ffffff;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    font-size: 14.5px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(37, 99, 235, 0.45);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  #enter-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.6);
+  }
+
+  #enter-btn:active { transform: translateY(0); }
+
+  #hint-text {
+    position: fixed;
+    bottom: 34px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12.5px;
+    color: #6f86ad;
+    font-weight: 300;
+    letter-spacing: 0.3px;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 1s ease;
+    pointer-events: none;
+  }
+
+  #hint-text.show { opacity: 1; }
+
+  @media (max-width: 420px) {
+    .ui-card { padding: 34px 24px 30px; }
+    .ui-card h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="ui-layer">
+  <div class="ui-card" id="login-card">
+    <div class="heart-icon">💙</div>
+    <h1>Hey you...</h1>
+    <p>ဘာလာချောင်းကြည့်တာလဲ စပ်စုမလို့မလား။ ဒါဆိုဘာဆက်ဖြစ်မလဲသိချင်လား?</p>
+    <input id="name-input" type="text" placeholder="နာမည်..." maxlength="18" autocomplete="off">
+    <button id="enter-btn">ဝင်မယ် →</button>
+  </div>
+</div>
+
+<div id="hint-text">👉 hint : "No" ကိုရွေးရင်တော့ ရင်နာရတော့မယ်ထင်ပါတယ်...</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  let width, height, dpr;
+
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let mouseX = width / 2, mouseY = height / 2;
+  window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+  window.addEventListener('touchmove', e => {
+    if (e.touches.length > 0) { mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY; }
+  }, { passive: true });
+
+  const BLUE_SHADES = ["#3b82f6","#60a5fa","#93c5fd","#2563eb","#bfdbfe","#00d2ff","#ffffff"];
+  const PINK_SHADES = ["#ff6fa5","#ff9ecb","#ffd1e3","#ff477e","#ffffff","#ff85a2"];
+
+  let time = 0;
+
+  // ============================================================
+  // Ambient dense heart field — only prominent during the login
+  // scene, fades away quietly afterwards so it never clutters
+  // the question / gift scenes.
+  // ============================================================
+  function getHeartPoint(t) {
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+    return { x, y };
+  }
+
+  class HeartParticle {
+    constructor(palette) { this.palette = palette; this.init(); }
+    init() {
+      this.color = this.palette[Math.floor(Math.random() * this.palette.length)];
+      this.size = Math.random() * 1.6 + 0.7;
+      this.maxLife = Math.random() * 100 + 80;
+      this.life = Math.random() * this.maxLife;
+      const t = Math.random() * Math.PI * 2;
+      const pos = getHeartPoint(t);
+      const scale = Math.min(width, height) / 38;
+      const isOutline = Math.random() < 0.8;
+      const spread = isOutline ? (Math.random() - 0.5) * 8 : (Math.random() - 0.5) * 38;
+      this.relX = pos.x * scale + spread;
+      this.relY = pos.y * scale - 20 + spread;
+      this.x = width / 2;
+      this.y = height * 0.4;
+      this.ease = Math.random() * 0.035 + 0.02;
+    }
+    update(pulseScale, anchorX, anchorY) {
+      this.life--;
+      if (this.life <= 0) { this.init(); return; }
+      const targetX = anchorX + this.relX * pulseScale;
+      const targetY = anchorY + this.relY * pulseScale;
+      this.x += (targetX - this.x) * this.ease;
+      this.y += (targetY - this.y) * this.ease;
+    }
+    draw(alphaMul) {
+      const alpha = Math.max(0, this.life / this.maxLife) * alphaMul;
+      if (alpha <= 0.01) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = alpha;
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = this.color;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  const ambientHearts = [];
+  const AMBIENT_COUNT = 480;
+  for (let i = 0; i < AMBIENT_COUNT; i++) ambientHearts.push(new HeartParticle(BLUE_SHADES));
+  let heartAlpha = 1;
+
+  // ============================================================
+  // Cursor replacement: tiny particle butterfly that follows mouse
+  // ============================================================
+  class CursorButterfly {
+    constructor() {
+      this.wingAngle = 0;
+      this.bx = mouseX; this.by = mouseY;
+      this.particles = [];
+      for (let t = 0; t < Math.PI * 2; t += 0.16) {
+        const r = Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) + Math.pow(Math.sin(t / 12), 5);
+        const x = r * Math.sin(t) * 3.2;
+        const y = -r * Math.cos(t) * 3.2;
+        this.particles.push({ ox: x, oy: y, color: BLUE_SHADES[Math.floor(Math.random() * BLUE_SHADES.length)], size: Math.random() * 1.1 + 0.7 });
+      }
+    }
+    update() {
+      this.bx += (mouseX - this.bx) * 0.32;
+      this.by += (mouseY - this.by) * 0.32;
+      this.wingAngle += 0.28;
+    }
+    draw() {
+      const flap = Math.sin(this.wingAngle);
+      ctx.save();
+      ctx.translate(this.bx, this.by);
+      this.particles.forEach(p => {
+        const x = p.ox * flap;
+        const y = p.oy;
+        ctx.beginPath();
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#00d2ff';
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+  }
+  const cursorButterfly = new CursorButterfly();
+
+  // ============================================================
+  // Text -> point sampler (offscreen canvas pixel sampling)
+  // ============================================================
+  function sampleTextPoints(text, fontSize, weight, step) {
+    const offW = Math.max(width, 800);
+    const offH = Math.ceil(fontSize * 2.2);
+    const off = document.createElement('canvas');
+    off.width = offW; off.height = offH;
+    const octx = off.getContext('2d');
+    octx.fillStyle = '#fff';
+    octx.textAlign = 'center';
+    octx.textBaseline = 'middle';
+    octx.font = `${weight} ${fontSize}px 'Poppins', sans-serif`;
+    octx.fillText(text, offW / 2, offH / 2);
+    const data = octx.getImageData(0, 0, offW, offH).data;
+    const pts = [];
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (let y = 0; y < offH; y += step) {
+      for (let x = 0; x < offW; x += step) {
+        const idx = (y * offW + x) * 4;
+        if (data[idx + 3] > 120) {
+          const rx = x - offW / 2, ry = y - offH / 2;
+          pts.push({ x: rx, y: ry });
+          if (rx < minX) minX = rx; if (rx > maxX) maxX = rx;
+          if (ry < minY) minY = ry; if (ry > maxY) maxY = ry;
+        }
+      }
+    }
+    if (pts.length === 0) { minX = maxX = minY = maxY = 0; }
+    return { points: pts, box: { w: maxX - minX, h: maxY - minY } };
+  }
+
+  // ============================================================
+  // Letter butterflies: tiny winged particles that assemble text.
+  // They look like fluttering butterflies mid-flight, then shrink
+  // into small crisp points of light once they land on the letter
+  // shape, so the final text reads cleanly instead of smearing.
+  // ============================================================
+  class LetterButterfly {
+    constructor(relX, relY, color, sizeScale) {
+      this.relX = relX; this.relY = relY;
+      this.cx = 0; this.cy = 0;
+      this.color = color;
+      this.x = Math.random() * width;
+      this.y = height + Math.random() * 220;
+      this.wingAngle = Math.random() * Math.PI * 2;
+      this.wingSpeed = 0.22 + Math.random() * 0.16;
+      this.size = (Math.random() * 0.6 + 0.95) * sizeScale;
+      this.maxSpeed = 15 + Math.random() * 6;
+      this.jitterX = Math.random() * Math.PI * 2;
+      this.jitterY = Math.random() * Math.PI * 2;
+      this.delay = Math.random() * 40;
+      this.alpha = 1;
+      this.settled = 0;
+    }
+    setCenter(cx, cy) { this.cx = cx; this.cy = cy; }
+    get tx() { return this.cx + this.relX; }
+    get ty() { return this.cy + this.relY; }
+    update() {
+      if (this.delay > 0) { this.delay--; return; }
+      const dx = this.tx - this.x, dy = this.ty - this.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 1.2) {
+        const step = Math.min(dist * 0.09, this.maxSpeed);
+        const ang = Math.atan2(dy, dx);
+        this.x += Math.cos(ang) * step;
+        this.y += Math.sin(ang) * step;
+        this.settled = Math.max(0, 1 - dist / 55);
+      } else {
+        this.settled = 1;
+        this.x = this.tx + Math.sin(time * 1.6 + this.jitterX) * 0.5;
+        this.y = this.ty + Math.cos(time * 1.4 + this.jitterY) * 0.5;
+      }
+      this.wingAngle += this.wingSpeed;
+    }
+    draw() {
+      if (this.delay > 0) return;
+      const s = this.settled;
+      const flap = Math.sin(this.wingAngle);
+      const flapAmount = (1 - s * 0.85);
+      const wingW = (this.size * 1.7 * Math.abs(flap) + this.size * 0.45) * flapAmount + this.size * 0.55 * s;
+      const blur = 5 - s * 2.5;
+      ctx.save();
+      ctx.globalAlpha = this.alpha;
+      ctx.translate(this.x, this.y);
+      ctx.fillStyle = this.color;
+      ctx.shadowBlur = blur;
+      ctx.shadowColor = this.color;
+      if (s > 0.92) {
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size * 0.85, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.ellipse(-wingW / 2, 0, wingW / 2, this.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(wingW / 2, 0, wingW / 2, this.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  class TextSwarm {
+    constructor(text, fontSize, weight, step, palette, sizeScale, centerX, centerY) {
+      const { points, box } = sampleTextPoints(text, fontSize, weight, step);
+      this.box = box;
+      this.center = { x: centerX, y: centerY };
+      this.butterflies = points.map(p => {
+        const b = new LetterButterfly(p.x, p.y, palette[Math.floor(Math.random() * palette.length)], sizeScale);
+        b.setCenter(centerX, centerY);
+        return b;
+      });
+    }
+    retarget(cx, cy) {
+      this.center = { x: cx, y: cy };
+      this.butterflies.forEach(b => b.setCenter(cx, cy));
+    }
+    update() { this.butterflies.forEach(b => b.update()); }
+    draw() { this.butterflies.forEach(b => b.draw()); }
+  }
+
+  function drawButtonGlow(cx, cy, box, color, glowAlpha) {
+    const padX = 34, padY = 22;
+    const w = Math.max(box.w, 40) + padX * 2;
+    const h = Math.max(box.h, 26) + padY * 2;
+    ctx.save();
+    ctx.globalAlpha = glowAlpha;
+    ctx.beginPath();
+    const r = h / 2;
+    ctx.moveTo(cx - w / 2 + r, cy - h / 2);
+    ctx.arcTo(cx + w / 2, cy - h / 2, cx + w / 2, cy + h / 2, r);
+    ctx.arcTo(cx + w / 2, cy + h / 2, cx - w / 2, cy + h / 2, r);
+    ctx.arcTo(cx - w / 2, cy + h / 2, cx - w / 2, cy - h / 2, r);
+    ctx.arcTo(cx - w / 2, cy - h / 2, cx + w / 2, cy - h / 2, r);
+    ctx.closePath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.4;
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = color;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ============================================================
+  // The gift: a laughing emoji face (😂) made entirely of
+  // sparkle particles. They fly in from all around, gather into
+  // the face outline, squint eyes, open mouth and tears, then the
+  // whole face keeps shaking with laughter while the sparkles
+  // twinkle and little tears keep rolling down.
+  // ============================================================
+  function easeOutBack(x) {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+  }
+
+  const GOLD = ['#ffd76a', '#ffe08a', '#ffcc4d', '#fff1b8', '#ffffff'];
+  const EYE_COL = ['#ff9a3c', '#ffb25e', '#ffd2a1'];
+  const MOUTH_COL = ['#ff5c7a', '#ff7f9a', '#e63e66', '#ff9ab0'];
+  const TEAR_COL = ['#60a5fa', '#93c5fd', '#bfdbfe', '#00d2ff', '#ffffff'];
+
+  function buildFacePoints() {
+    const pts = [];
+    const add = (x, y, col, size, a) => pts.push({ x, y, col, size, a });
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    const seg = (x1, y1, x2, y2, n, col, size, a) => {
+      for (let i = 0; i < n; i++) {
+        const t = Math.random();
+        add(x1 + (x2 - x1) * t + (Math.random() - 0.5) * 0.03,
+            y1 + (y2 - y1) * t + (Math.random() - 0.5) * 0.03, pick(col), size, a);
+      }
+    };
+
+    // face outline
+    for (let i = 0; i < 240; i++) {
+      const t = Math.random() * Math.PI * 2;
+      const r = 1 + (Math.random() - 0.5) * 0.06;
+      add(Math.cos(t) * r, Math.sin(t) * r, pick(GOLD), Math.random() * 0.9 + 1, 1);
+    }
+    // soft face fill (dimmer)
+    for (let i = 0; i < 170; i++) {
+      const t = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * 0.94;
+      add(Math.cos(t) * r, Math.sin(t) * r, pick(GOLD), Math.random() * 0.7 + 0.6, 0.38);
+    }
+    // squinting eyes  > <
+    [-1, 1].forEach(s => {
+      seg(s * 0.58, -0.40, s * 0.24, -0.24, 45, EYE_COL, 1.7, 1);
+      seg(s * 0.24, -0.24, s * 0.58, -0.06, 45, EYE_COL, 1.7, 1);
+    });
+    // open laughing mouth (D shape)
+    for (let i = 0; i < 230; i++) {
+      const t = Math.random() * Math.PI;
+      const r = Math.sqrt(Math.random());
+      add(Math.cos(t) * 0.58 * r, 0.16 + Math.sin(t) * 0.55 * r, pick(MOUTH_COL), Math.random() * 0.8 + 0.9, 0.9);
+    }
+    // mouth outline
+    for (let i = 0; i < 70; i++) {
+      const t = Math.random() * Math.PI;
+      add(Math.cos(t) * 0.6, 0.16 + Math.sin(t) * 0.57, '#ffb25e', 1.5, 1);
+    }
+    seg(-0.6, 0.16, 0.6, 0.16, 40, ['#ffb25e'], 1.5, 1);
+    // teeth strip
+    seg(-0.5, 0.22, 0.5, 0.22, 55, ['#ffffff', '#fff6e0'], 1.5, 1);
+    seg(-0.46, 0.29, 0.46, 0.29, 40, ['#ffffff', '#fff6e0'], 1.4, 0.9);
+    // tears of joy
+    [-1, 1].forEach(s => {
+      for (let i = 0; i < 38; i++) {
+        const t = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random());
+        add(s * 0.86 + Math.cos(t) * 0.1 * r, -0.04 + Math.sin(t) * 0.15 * r, pick(TEAR_COL), Math.random() * 0.8 + 0.9, 0.95);
+      }
+    });
+    return pts;
+  }
+
+  class FaceParticle {
+    constructor(p, delay) {
+      this.rx = p.x; this.ry = p.y;
+      this.color = p.col; this.size = p.size; this.baseA = p.a;
+      this.delay = delay;
+      this.phase = Math.random() * Math.PI * 2;
+      this.speed = 1.2 + Math.random() * 2.2;
+      this.ease = 0.045 + Math.random() * 0.04;
+      this.x = (Math.random() - 0.5) * width * 1.4;
+      this.y = height * 0.6 + Math.random() * 260;
+      this.arrived = 0;
+    }
+    update(R) {
+      if (this.delay > 0) { this.delay--; return; }
+      const tx = this.rx * R, ty = this.ry * R;
+      this.x += (tx - this.x) * this.ease;
+      this.y += (ty - this.y) * this.ease;
+      this.arrived = Math.max(0, 1 - Math.hypot(tx - this.x, ty - this.y) / 90);
+    }
+    draw() {
+      if (this.delay > 0) return;
+      const tw = 0.7 + 0.3 * Math.sin(time * this.speed + this.phase);
+      const a = this.baseA * (0.35 + 0.65 * this.arrived) * tw;
+      if (a <= 0.02) return;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  class LaughingFace {
+    constructor(cx, cy, R) {
+      this.cx = cx; this.cy = cy; this.R = R;
+      this.frame = 0;
+      this.particles = buildFacePoints().map(p => new FaceParticle(p, Math.random() * 60));
+      // falling tear droplets
+      this.drops = [];
+      [-1, 1].forEach(s => {
+        for (let i = 0; i < 7; i++) this.drops.push(this.newDrop(s, Math.random()));
+      });
+    }
+    newDrop(side, prog) {
+      return { side, t: prog, speed: 0.006 + Math.random() * 0.006, off: (Math.random() - 0.5) * 0.12,
+               size: Math.random() * 1 + 1, color: TEAR_COL[Math.floor(Math.random() * TEAR_COL.length)] };
+    }
+    update() {
+      this.frame++;
+      this.particles.forEach(p => p.update(this.R));
+      this.drops.forEach(d => {
+        d.t += d.speed;
+        if (d.t > 1) { d.t = 0; d.off = (Math.random() - 0.5) * 0.12; }
+      });
+    }
+    draw(intro) {
+      const laugh = Math.min(1, Math.max(0, (this.frame - 110) / 60));
+      const shakeX = Math.sin(time * 9) * 2.2 * laugh;
+      const bounce = -Math.abs(Math.sin(time * 4.5)) * this.R * 0.07 * laugh;
+      const rot = Math.sin(time * 6.5) * 0.06 * laugh;
+      const sc = easeOutBack(intro) * (1 + Math.sin(time * 9) * 0.012 * laugh);
+
+      ctx.save();
+      ctx.translate(this.cx + shakeX, this.cy + bounce);
+      ctx.rotate(rot);
+      ctx.scale(sc, sc);
+      ctx.shadowBlur = 5;
+      this.particles.forEach(p => p.draw());
+
+      // rolling tears
+      const R = this.R;
+      this.drops.forEach(d => {
+        const x = (d.side * 0.9 + d.off + d.side * d.t * 0.12) * R;
+        const y = (0.0 + d.t * 0.95) * R;
+        ctx.globalAlpha = (1 - d.t) * 0.9 * Math.min(1, intro * 2);
+        ctx.fillStyle = d.color;
+        ctx.shadowColor = d.color;
+        ctx.beginPath();
+        ctx.arc(x, y, d.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+  }
+
+  class SparkleBurst {
+    constructor(x, y) {
+      this.particles = [];
+      const colors = ['#ffd76a', '#ff9ecb', '#93c5fd', '#ffffff'];
+      const count = 46;
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+        const speed = Math.random() * 3.4 + 1.6;
+        this.particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1,
+          life: 1,
+          decay: 0.012 + Math.random() * 0.01,
+          size: Math.random() * 1.8 + 1,
+          color: colors[Math.floor(Math.random() * colors.length)]
+        });
+      }
+    }
+    update() {
+      this.particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        p.vx *= 0.96; p.vy = p.vy * 0.96 + 0.03;
+        p.life -= p.decay;
+      });
+      this.particles = this.particles.filter(p => p.life > 0);
+    }
+    draw() {
+      this.particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = p.color;
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+    get alive() { return this.particles.length > 0; }
+  }
+
+  // ============================================================
+  // Scene state machine
+  // ============================================================
+  const state = {
+    scene: 'login',
+    questionSwarm: null,
+    yesSwarm: null,
+    noSwarm: null,
+    finalSwarm: null,
+    noCenter: { x: 0, y: 0 },
+    yesCenter: { x: 0, y: 0 },
+    noActive: false,
+    dodgeCount: 0,
+    exitSwarms: [],
+    userName: '',
+    face: null,
+    faceT: 0,
+    burst: null
+  };
+
+  const MAX_DODGES = 6;
+
+  function pickSafePosition(boxW, boxH, avoidPoints, margin) {
+    let best = null, bestScore = -Infinity;
+    for (let attempt = 0; attempt < 24; attempt++) {
+      const x = margin + boxW / 2 + Math.random() * (width - 2 * margin - boxW);
+      const y = margin + boxH / 2 + Math.random() * (height - 2 * margin - boxH);
+      let score = 0, ok = true;
+      for (const p of avoidPoints) {
+        const d = Math.hypot(x - p.x, y - p.y);
+        if (d < p.r) ok = false;
+        score += d;
+      }
+      if (ok && score > bestScore) { bestScore = score; best = { x, y }; }
+    }
+    return best || { x: width / 2, y: height * 0.72 };
+  }
+
+  function startQuestionScene() {
+    state.scene = 'question';
+    const title = state.userName ? `Day ကိုချစ်လား?, ${state.userName}?` : 'Day ကိုချစ်လား?';
+    const titleFont = Math.max(24, Math.min(50, width * 0.07));
+    state.questionSwarm = new TextSwarm(title, titleFont, 700, 3, BLUE_SHADES, 1, width / 2, height * 0.34);
+
+    const btnFont = Math.max(22, Math.min(32, width * 0.042));
+    state.yesCenter = { x: width / 2 - Math.min(90, width * 0.14), y: height * 0.58 };
+    state.noCenter = { x: width / 2 + Math.min(90, width * 0.14), y: height * 0.58 };
+
+    state.yesSwarm = new TextSwarm('Yes', btnFont, 600, 2, BLUE_SHADES, 1.2, state.yesCenter.x, state.yesCenter.y);
+    state.noSwarm = new TextSwarm('No', btnFont, 600, 2, BLUE_SHADES, 1.2, state.noCenter.x, state.noCenter.y);
+    state.noActive = true;
+    state.dodgeCount = 0;
+
+    const hint = document.getElementById('hint-text');
+    setTimeout(() => hint.classList.add('show'), 1200);
+    setTimeout(() => hint.classList.remove('show'), 6000);
+  }
+
+  function fleeNoButton() {
+    const boxW = Math.max(state.noSwarm.box.w, 40) + 70;
+    const boxH = Math.max(state.noSwarm.box.h, 26) + 46;
+    state.dodgeCount++;
+
+    if (state.dodgeCount > MAX_DODGES) {
+      state.noActive = false;
+      const angle = Math.atan2(state.noCenter.y - height / 2, state.noCenter.x - width / 2) || Math.random() * Math.PI * 2;
+      const farX = state.noCenter.x + Math.cos(angle) * 900;
+      const farY = state.noCenter.y + Math.sin(angle) * 900 - 500;
+      state.noCenter = { x: farX, y: farY };
+      state.noSwarm.retarget(farX, farY);
+      const goneSwarm = state.noSwarm;
+      state.exitSwarms.push(goneSwarm);
+      state.noSwarm = null;
+      setTimeout(() => {
+        const i = state.exitSwarms.indexOf(goneSwarm);
+        if (i >= 0) state.exitSwarms.splice(i, 1);
+      }, 2200);
+      return;
+    }
+
+    const avoid = [
+      { x: mouseX, y: mouseY, r: 160 },
+      { x: state.yesCenter.x, y: state.yesCenter.y, r: 120 }
+    ];
+    const pos = pickSafePosition(boxW, boxH, avoid, 60);
+    state.noCenter = pos;
+    state.noSwarm.retarget(pos.x, pos.y);
+  }
+
+  function startFinalScene() {
+    state.scene = 'transition-final';
+    [state.questionSwarm, state.yesSwarm].forEach(sw => {
+      if (!sw) return;
+      const away = { x: sw.center.x + (Math.random() - 0.5) * 300, y: -400 };
+      sw.retarget(away.x, away.y);
+      state.exitSwarms.push(sw);
+    });
+    state.questionSwarm = null;
+    state.yesSwarm = null;
+
+    setTimeout(() => {
+      state.exitSwarms = [];
+      state.scene = 'final';
+      const title = state.userName ? `ဒါမယ့်ဒေးကတော့မချစ်ပါဘူး ငြင်းတယ်နော်...ဟိဟိဟိ, ${state.userName}` : 'ဒါမယ့်ဒေးကတော့မချစ်ပါဘူး ငြင်းတယ်နော်...ဟိဟိဟိ';
+      const titleFont = Math.max(26, Math.min(46, width * 0.075));
+      state.finalSwarm = new TextSwarm(title, titleFont, 700, 3, PINK_SHADES, 1, width / 2, height * 0.24);
+
+      setTimeout(() => {
+        const R = Math.max(60, Math.min(width * 0.3, height * 0.21, 135));
+        const cy = height * 0.64;
+        state.face = new LaughingFace(width / 2, cy, R);
+        state.faceT = 0;
+        state.burst = new SparkleBurst(width / 2, cy);
+      }, 850);
+    }, 1300);
+  }
+
+  // ============================================================
+  // Input handling
+  // ============================================================
+  document.getElementById('enter-btn').addEventListener('click', () => {
+    const name = document.getElementById('name-input').value.trim();
+    state.userName = name;
+    document.getElementById('login-card').classList.add('hidden');
+    setTimeout(startQuestionScene, 500);
+  });
+  document.getElementById('name-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('enter-btn').click();
+  });
+
+  canvas.addEventListener('mousemove', () => {
+    if (state.scene === 'question' && state.noActive && state.noSwarm) {
+      const dx = mouseX - state.noCenter.x, dy = mouseY - state.noCenter.y;
+      const dist = Math.hypot(dx, dy);
+      const threshold = Math.max(state.noSwarm.box.w, state.noSwarm.box.h) / 2 + 85;
+      if (dist < threshold) fleeNoButton();
+    }
+  });
+
+  function handlePointer(px, py) {
+    if (state.scene !== 'question') return;
+    if (state.yesSwarm) {
+      const w = Math.max(state.yesSwarm.box.w, 40) + 70;
+      const h = Math.max(state.yesSwarm.box.h, 26) + 46;
+      if (Math.abs(px - state.yesCenter.x) < w / 2 && Math.abs(py - state.yesCenter.y) < h / 2) {
+        startFinalScene();
+        return;
+      }
+    }
+    if (state.noActive && state.noSwarm) {
+      const w = Math.max(state.noSwarm.box.w, 40) + 70;
+      const h = Math.max(state.noSwarm.box.h, 26) + 46;
+      if (Math.abs(px - state.noCenter.x) < w / 2 && Math.abs(py - state.noCenter.y) < h / 2) {
+        fleeNoButton();
+      }
+    }
+  }
+
+  canvas.addEventListener('click', (e) => handlePointer(e.clientX, e.clientY));
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) {
+      const t = e.touches[0];
+      mouseX = t.clientX; mouseY = t.clientY;
+      handlePointer(t.clientX, t.clientY);
+    }
+  }, { passive: true });
+
+  // ============================================================
+  // Main animation loop
+  // ============================================================
+  function animate() {
+    ctx.fillStyle = 'rgba(2, 2, 5, 0.4)';
+    ctx.fillRect(0, 0, width, height);
+
+    time += 0.04;
+    const pulseScale = 1 + Math.sin(time) * 0.04;
+
+    const targetHeartAlpha = state.scene === 'login' ? 1 : (state.scene === 'final' ? 0.05 : 0.1);
+    heartAlpha += (targetHeartAlpha - heartAlpha) * 0.04;
+    ambientHearts.forEach(p => {
+      p.update(pulseScale, width / 2, height * 0.4);
+      p.draw(heartAlpha);
+    });
+
+    if (state.questionSwarm) { state.questionSwarm.update(); state.questionSwarm.draw(); }
+    if (state.yesSwarm) {
+      state.yesSwarm.update();
+      drawButtonGlow(state.yesCenter.x, state.yesCenter.y, state.yesSwarm.box, '#60a5fa', 0.55 + Math.sin(time * 2) * 0.15);
+      state.yesSwarm.draw();
+    }
+    if (state.noSwarm && state.noActive) {
+      state.noSwarm.update();
+      drawButtonGlow(state.noCenter.x, state.noCenter.y, state.noSwarm.box, '#93c5fd', 0.3);
+      state.noSwarm.draw();
+    }
+    state.exitSwarms.forEach(sw => { sw.update(); sw.draw(); });
+
+    if (state.finalSwarm) { state.finalSwarm.update(); state.finalSwarm.draw(); }
+
+    if (state.face) {
+      state.faceT = Math.min(1, state.faceT + 0.016);
+      state.face.update();
+      state.face.draw(state.faceT);
+      if (state.burst && state.burst.alive) { state.burst.update(); state.burst.draw(); }
+    }
+
+    cursorButterfly.update();
+    cursorButterfly.draw();
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+})();
+</script>
+</body>
+</html>
