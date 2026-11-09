@@ -20,12 +20,10 @@ A magical, interactive web experience built with pure HTML5 Canvas and vanilla J
 ## Live Demo
 
 You can view the live interactive web page here:
-👉 [https://your-username.github.io/something-for-you/](https://your-username.github.io/something-for-you/)
-
-*(Replace `your-username` with your actual GitHub username)*
+👉 [https://day-d.github.io/something-for-you/](https://day-d.github.io/something-for-you/)
 
 ## 💡 How to Run Locally
 
 1. Clone this repository:
    ```bash
-   git clone [https://github.com/your-username/something-for-you.git](https://github.com/your-username/something-for-you.git)
+   git clone [https://day-d.github.io/something-for-you/](https://day-d.github.io/something-for-you/)
